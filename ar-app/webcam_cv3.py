@@ -3,12 +3,10 @@ import sys
 import logging as log
 import datetime as dt
 from time import sleep
-from PIL import Image
-from shapely.geometry import Point
-from shapely.geometry.polygon import Polygon
+import threading
+import json
 
 from SimpleWebSocketServer import SimpleWebSocketServer, WebSocket
-
 server = None
 clients = []
 
@@ -30,11 +28,11 @@ t.start()
 
 # The rest of the OpenCV code ...
 
-eye_cascade = cv2.CascadeClassifier('haarcascades/haarcascade_eye.xml')
-left_ear_cascade = cv2.CascadeClassifier('haarcascades/haarcascade_mcs_leftear.xml')
-right_ear_cascade = cv2.CascadeClassifier('haarcascades/haarcascade_mcs_rightear.xml')
-nose_cascade = cv2.CascadeClassifier('haarcascades/haarcascade_mcs_nose.xml')
-face_cascade = cv2.CascadeClassifier('haarcascades/haarcascade_frontalface_default.xml')
+eye_cascade = cv2.CascadeClassifier('../haarcascades/haarcascade_eye.xml')
+left_ear_cascade = cv2.CascadeClassifier('../haarcascades/haarcascade_mcs_leftear.xml')
+right_ear_cascade = cv2.CascadeClassifier('../haarcascades/haarcascade_mcs_rightear.xml')
+nose_cascade = cv2.CascadeClassifier('../haarcascades/haarcascade_mcs_nose.xml')
+face_cascade = cv2.CascadeClassifier('../haarcascades/haarcascade_frontalface_default.xml')
 
 log.basicConfig(filename='webcam.log',level=log.INFO)
 
@@ -55,7 +53,6 @@ if nose_cascade.empty():
 if face_cascade.empty():
     raise IOError('Unable to load the face cascade classifier xml file')
 
-biometrics = []
 
 while True:
     if not video_capture.isOpened():
@@ -65,6 +62,7 @@ while True:
 
     # Capture frame-by-frame
     ret, frame = video_capture.read()
+    biometrics = {}
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     faces = face_cascade.detectMultiScale(gray, 1.3, 5)
@@ -80,25 +78,31 @@ while True:
         nose = nose_cascade.detectMultiScale(roi_gray, 1.3, 5)
 
         for (x,y,w,h) in eyes:
-            biometrics.append([x, y, w, h])
+            biometrics['eyes'] = [x, y, w, h]
             cv2.rectangle(roi_color, (x,y),(x+w,y+h),(0, 0, 255), 3)
 
         for (x,y,w,h) in left_ear:
-            biometrics.append([x, y, w, h])
+            biometrics['left_ear'] = [x, y, w, h]
             cv2.rectangle(roi_color, (x,y), (x+w,y+h), (255, 0, 0), 3)
 
         for (x,y,w,h) in right_ear:
-            biometrics.append([x, y, w, h])
+            biometrics['right_ear'] = [x, y, w, h]
             cv2.rectangle(roi_color, (x,y), (x+w,y+h), (255, 0, 0), 3)
 
         for (x,y,w,h) in nose:
-            biometrics.append([x, y, w, h])
+            biometrics['nose'] = [x, y, w, h]
             cv2.rectangle(roi_color, (x,y), (x+w,y+h), (255, 0, 0), 3)
-        
-    print biometrics
-    for client in clients:
-        # msg = json.dumps(biometrics)
-        # client.sendMessage(unicode(msg))
+
+    def dumper(obj):
+        try:
+            return obj.toJSON()
+        except:
+            return obj.__dict__
+
+    print json.dumps(biometrics, default=dumper, indent=2)
+    # for client in clients:
+    #     msg = json.dumps(biometrics, default=set_default)
+    #     client.sendMessage(unicode(msg))
 
     # Display the resulting frame
     cv2.imshow('Video', frame)
