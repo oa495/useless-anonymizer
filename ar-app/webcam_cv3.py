@@ -77,32 +77,34 @@ while True:
         right_ear = right_ear_cascade.detectMultiScale(roi_gray, 1.3, 5)
         nose = nose_cascade.detectMultiScale(roi_gray, 1.3, 5)
 
-        for (x,y,w,h) in eyes:
-            biometrics['eyes'] = [x, y, w, h]
-            cv2.rectangle(roi_color, (x,y),(x+w,y+h),(0, 0, 255), 3)
+        if (not isinstance(eyes, tuple)):
+            eyes = eyes.tolist()
+            for (x,y,w,h) in eyes:
+                biometrics['eyes'] = [x, y, w, h]
+                cv2.rectangle(roi_color, (x,y),(x+w,y+h),(0, 0, 255), 3)
+        
+        if (not isinstance(left_ear, tuple)):
+            left_ear = left_ear.tolist()
+            for (x,y,w,h) in left_ear:
+                biometrics['left_ear'] = [x, y, w, h]
+                cv2.rectangle(roi_color, (x,y), (x+w,y+h), (255, 0, 0), 3)
 
-        for (x,y,w,h) in left_ear:
-            biometrics['left_ear'] = [x, y, w, h]
-            cv2.rectangle(roi_color, (x,y), (x+w,y+h), (255, 0, 0), 3)
+        if (not isinstance(right_ear, tuple)):
+            right_ear = right_ear.tolist()
+            for (x,y,w,h) in right_ear:
+                biometrics['right_ear'] = [x, y, w, h]
+                cv2.rectangle(roi_color, (x,y), (x+w,y+h), (255, 0, 0), 3)
 
-        for (x,y,w,h) in right_ear:
-            biometrics['right_ear'] = [x, y, w, h]
-            cv2.rectangle(roi_color, (x,y), (x+w,y+h), (255, 0, 0), 3)
+        if (not isinstance(nose, tuple)):
+            nose = nose.tolist()
+            for (x,y,w,h) in nose:
+                biometrics['nose'] = [x, y, w, h]
+                cv2.rectangle(roi_color, (x,y), (x+w,y+h), (255, 0, 0), 3)
 
-        for (x,y,w,h) in nose:
-            biometrics['nose'] = [x, y, w, h]
-            cv2.rectangle(roi_color, (x,y), (x+w,y+h), (255, 0, 0), 3)
 
-    def dumper(obj):
-        try:
-            return obj.toJSON()
-        except:
-            return obj.__dict__
-
-    print json.dumps(biometrics, default=dumper, indent=2)
-    # for client in clients:
-    #     msg = json.dumps(biometrics, default=set_default)
-    #     client.sendMessage(unicode(msg))
+    for client in clients:
+        msg = json.dumps(biometrics)
+        client.sendMessage(unicode(msg))
 
     # Display the resulting frame
     cv2.imshow('Video', frame)
